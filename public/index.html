@@ -1,1 +1,211 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Paiement</title>
 
+<style>
+body {
+  font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+  background: #f6f6f6;
+  padding: 20px;
+}
+
+.container {
+  max-width: 420px;
+  margin: auto;
+}
+
+h1 {
+  text-align: center;
+}
+
+input {
+  width: 100%;
+  padding: 18px;
+  font-size: 20px;
+  margin-bottom: 20px;
+  border-radius: 12px;
+  border: 1px solid #ccc;
+}
+
+.buttons {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 20px;
+}
+
+.buttons button {
+  flex: 1;
+  padding: 16px;
+  font-size: 16px;
+  border-radius: 12px;
+  border: none;
+}
+
+.immediate {
+  background: #2FBFC3;
+  color: white;
+}
+
+.preauth {
+  background: #FF8A7A;
+  color: white;
+}
+
+#submit {
+  width: 100%;
+  padding: 20px;
+  font-size: 18px;
+  border-radius: 12px;
+  border: none;
+  background: #005F66;
+  color: white;
+}
+
+#status {
+  margin-top: 20px;
+  text-align: center;
+  font-weight: bold;
+}
+</style>
+</head>
+
+<body>
+
+<div class="container">
+  <h1>Paiement</h1>
+
+  <input type="number" id="amount" placeholder="Montant (€)" />
+
+  <div class="buttons">
+    <button class="immediate" onclick="setMode('immediate')">Paiement</button>
+    <button class="preauth" onclick="setMode('preauth')">Caution</button>
+  </div>
+
+  <button id="submit" onclick="sendPayment()">Envoyer au terminal</button>
+
+  <div id="status"></div>
+</div>
+
+<script>
+let selectedMode = 'immediate';
+const readerId = "tmr_GczAvgJZPyd8Ex";
+
+function setMode(mode) {
+  selectedMode = mode;
+  document.getElementById('status').innerText = "Mode : " + (mode === 'immediate' ? 'Paiement' : 'Caution');
+}
+
+function sleep(ms) {
+  return new Promise(function(resolve) {
+    setTimeout(resolve, ms);
+  });
+}
+
+async function pollPaymentIntent(paymentIntentId) {
+  const statusEl = document.getElementById('status');
+  let i;
+
+  for (i = 0; i < 20; i++) {
+    await sleep(2000);
+
+    const res = await fetch('/payment-intent/' + paymentIntentId);
+    const data = await res.json();
+
+    if (!data.ok) {
+      statusEl.innerText = "Erreur récupération statut";
+      return;
+    }
+
+    if (data.status === 'succeeded') {
+      statusEl.innerText = "Paiement accepté";
+      return;
+    }
+
+    if (data.status === 'requires_capture') {
+      statusEl.innerText = "Caution autorisée";
+      return;
+    }
+
+    if (data.status === 'canceled') {
+      statusEl.innerText = "Paiement annulé";
+      return;
+    }
+
+    if (data.status === 'processing') {
+      statusEl.innerText = "Paiement en cours...";
+      continue;
+    }
+
+    if (data.status === 'requires_payment_method') {
+      statusEl.innerText = "Attente carte...";
+      continue;
+    }
+
+    statusEl.innerText = "Statut : " + data.status;
+  }
+
+  statusEl.innerText = "Statut en attente";
+}
+
+async function sendPayment() {
+  const amountInput = document.getElementById('amount').value;
+  const statusEl = document.getElementById('status');
+
+  if (!amountInput) {
+    statusEl.innerText = "Montant requis";
+    return;
+  }
+
+  const amount = Math.round(parseFloat(amountInput) * 100);
+
+  try {
+    statusEl.innerText = "Création du paiement...";
+
+    const piRes = await fetch('/create-payment-intent', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        amount: amount,
+        currency: 'eur',
+        mode: selectedMode
+      })
+    });
+
+    const piData = await piRes.json();
+
+    if (!piData.ok) {
+      throw new Error(piData.error || "Erreur création paiement");
+    }
+
+    statusEl.innerText = "Envoi au terminal...";
+
+    const collectRes = await fetch('/collect-payment-method', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        reader_id: readerId,
+        payment_intent_id: piData.payment_intent_id
+      })
+    });
+
+    const collectData = await collectRes.json();
+
+    if (!collectData.ok) {
+      throw new Error(collectData.error || "Erreur terminal");
+    }
+
+    statusEl.innerText = "Terminal prêt, attente carte...";
+
+    await pollPaymentIntent(piData.payment_intent_id);
+
+  } catch (err) {
+    statusEl.innerText = "Erreur : " + err.message;
+  }
+}
+</script>
+
+</body>
+</html>
