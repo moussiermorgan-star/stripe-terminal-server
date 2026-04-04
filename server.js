@@ -305,11 +305,7 @@ app.post('/simulate-present-payment-method', async (req, res) => {
   }
 });
 
-app.listen(process.env.PORT || 3000, () => {
-  logStep('SERVER_STARTED', {
-    port: process.env.PORT || 3000,
-  });
-});
+
 
 app.post('/capture-payment-intent', async (req, res) => {
   try {
@@ -359,4 +355,62 @@ app.post('/capture-payment-intent', async (req, res) => {
       error: error.message
     });
   }
+});
+app.post('/cancel-reader-action', async (req, res) => {
+  try {
+    const { reader_id, payment_intent_id } = req.body;
+
+    if (!reader_id) {
+      return res.status(400).json({
+        ok: false,
+        error: 'reader_id est obligatoire'
+      });
+    }
+
+    logStep('CANCEL_READER_REQUEST', {
+      reader_id,
+      payment_intent_id: payment_intent_id || null
+    });
+
+    const reader = await stripe.terminal.readers.cancelAction(reader_id);
+
+    let canceledPaymentIntent = null;
+
+    if (payment_intent_id) {
+      try {
+        canceledPaymentIntent = await stripe.paymentIntents.cancel(payment_intent_id);
+
+        logStep('CANCEL_PI_SUCCESS', {
+          id: canceledPaymentIntent.id,
+          status: canceledPaymentIntent.status
+        });
+      } catch (error) {
+        logError('CANCEL_PI', error);
+      }
+    }
+
+    logStep('CANCEL_READER_SUCCESS', {
+      reader_id: reader.id,
+      reader_status: reader.status,
+      action: reader.action || null
+    });
+
+    res.json({
+      ok: true,
+      reader,
+      payment_intent: canceledPaymentIntent
+    });
+  } catch (error) {
+    logError('CANCEL_READER', error);
+    res.status(500).json({
+      ok: false,
+      error: error.message
+    });
+  }
+});
+
+app.listen(process.env.PORT || 3000, () => {
+  logStep('SERVER_STARTED', {
+    port: process.env.PORT || 3000,
+  });
 });
