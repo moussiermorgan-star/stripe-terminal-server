@@ -85,6 +85,9 @@ input {
   </div>
 
   <button id="submit" onclick="sendPayment()">Envoyer au terminal</button>
+  <button onclick="cancelPayment()" style="background:#ccc;">
+  Annuler
+</button>
 
   <div id="status"></div>
 </div>
@@ -95,92 +98,35 @@ const readerId = "tmr_GczAvgJZPyd8Ex";
 
 function setMode(mode) {
   selectedMode = mode;
-  document.getElementById('status').innerText = "Mode : " + (mode === 'immediate' ? 'Paiement' : 'Caution');
-}
-
-function sleep(ms) {
-  return new Promise(function(resolve) {
-    setTimeout(resolve, ms);
-  });
-}
-
-async function pollPaymentIntent(paymentIntentId) {
-  const statusEl = document.getElementById('status');
-  let i;
-
-  for (i = 0; i < 20; i++) {
-    await sleep(2000);
-
-    const res = await fetch('/payment-intent/' + paymentIntentId);
-    const data = await res.json();
-
-    if (!data.ok) {
-      statusEl.innerText = "Erreur récupération statut";
-      return;
-    }
-
-    if (data.status === 'succeeded') {
-      statusEl.innerText = "Paiement accepté";
-      return;
-    }
-
-    if (data.status === 'requires_capture') {
-      statusEl.innerText = "Caution autorisée";
-      return;
-    }
-
-    if (data.status === 'canceled') {
-      statusEl.innerText = "Paiement annulé";
-      return;
-    }
-
-    if (data.status === 'processing') {
-      statusEl.innerText = "Paiement en cours...";
-      continue;
-    }
-
-    if (data.status === 'requires_payment_method') {
-      statusEl.innerText = "Attente carte...";
-      continue;
-    }
-
-    statusEl.innerText = "Statut : " + data.status;
-  }
-
-  statusEl.innerText = "Statut en attente";
+  document.getElementById('status').innerText =
+    "Mode: " + (mode === 'immediate' ? 'Paiement' : 'Caution');
 }
 
 async function sendPayment() {
   const amountInput = document.getElementById('amount').value;
-  const statusEl = document.getElementById('status');
+  const status = document.getElementById('status');
 
   if (!amountInput) {
-    statusEl.innerText = "Montant requis";
+    status.innerText = "Montant requis";
     return;
   }
 
   const amount = Math.round(parseFloat(amountInput) * 100);
 
   try {
-    statusEl.innerText = "Création du paiement...";
+    status.innerText = "Création du paiement...";
 
     const piRes = await fetch('/create-payment-intent', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        amount: amount,
-        currency: 'eur',
-        mode: selectedMode
-      })
+      body: JSON.stringify({ amount, currency: 'eur', mode: selectedMode })
     });
 
     const piData = await piRes.json();
 
-    if (!piData.ok) {
-      throw new Error(piData.error || "Erreur création paiement");
-    }
+    if (!piData.ok) throw new Error("Erreur création paiement");
 
-    statusEl.innerText = "Envoi au terminal...";
+    status.innerText = "Envoi au terminal...";
 
     const collectRes = await fetch('/collect-payment-method', {
       method: 'POST',
@@ -193,16 +139,35 @@ async function sendPayment() {
 
     const collectData = await collectRes.json();
 
-    if (!collectData.ok) {
-      throw new Error(collectData.error || "Erreur terminal");
-    }
+    if (!collectData.ok) throw new Error("Erreur terminal");
 
-    statusEl.innerText = "Terminal prêt, attente carte...";
-
-    await pollPaymentIntent(piData.payment_intent_id);
+    status.innerText = "En attente carte sur terminal";
 
   } catch (err) {
-    statusEl.innerText = "Erreur : " + err.message;
+    status.innerText = "Erreur : " + err.message;
+  }
+}
+
+async function cancelPayment() {
+  const status = document.getElementById('status');
+
+  try {
+    status.innerText = "Annulation en cours...";
+
+    const res = await fetch('/cancel-reader-action', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ reader_id: readerId })
+    });
+
+    const data = await res.json();
+
+    if (!data.ok) throw new Error("Erreur annulation");
+
+    status.innerText = "Paiement annulé";
+
+  } catch (err) {
+    status.innerText = "Erreur : " + err.message;
   }
 }
 </script>
