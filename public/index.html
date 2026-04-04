@@ -6,9 +6,11 @@
 <title>Paiement</title>
 
 <style>
+/* MLO – Interface paiement premium */
+
 body {
   font-family: -apple-system, BlinkMacSystemFont, sans-serif;
-  background: #f6f6f6;
+  background: #f4f5f7;
   padding: 20px;
 }
 
@@ -19,55 +21,76 @@ body {
 
 h1 {
   text-align: center;
+  margin-bottom: 25px;
 }
 
 input {
-  width: 100%;
+  width: calc(100% - 2px);
+  box-sizing: border-box;
   padding: 18px;
-  font-size: 20px;
-  margin-bottom: 20px;
+  font-size: 18px;
   border-radius: 12px;
-  border: 1px solid #ccc;
+  border: 1px solid #ddd;
+  margin-bottom: 20px;
 }
 
-.buttons {
+/* ROW */
+.row {
   display: flex;
   gap: 10px;
-  margin-bottom: 20px;
+  margin-bottom: 15px;
 }
 
-.buttons button {
+/* BASE BUTTON */
+button {
   flex: 1;
   padding: 16px;
   font-size: 16px;
   border-radius: 12px;
   border: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
 }
 
-.immediate {
-  background: #2FBFC3;
+/* ===== LIGNE 1 : MODE ===== */
+
+/* Paiement (marine) */
+.btn-payment {
+  background: #0f2a44;
   color: white;
 }
 
-.preauth {
-  background: #FF8A7A;
+/* Caution (or) */
+.btn-preauth {
+  background: #c8a96a;
+  color: #1a1a1a;
+}
+
+/* ===== LIGNE 2 : ACTION ===== */
+
+/* Envoyer (vert premium) */
+.btn-send {
+  background: #2e7d5b;
   color: white;
 }
 
-#submit {
-  width: 100%;
-  padding: 20px;
-  font-size: 18px;
-  border-radius: 12px;
-  border: none;
-  background: #005F66;
+/* Annuler (rouge premium) */
+.btn-cancel {
+  background: #8b2e2e;
   color: white;
 }
 
+/* HOVER subtil */
+button:hover {
+  transform: translateY(-1px);
+  opacity: 0.95;
+}
+
+/* STATUS */
 #status {
   margin-top: 20px;
   text-align: center;
-  font-weight: bold;
+  font-size: 16px;
 }
 </style>
 </head>
@@ -79,17 +102,17 @@ input {
 
   <input type="number" id="amount" placeholder="Montant (€)" />
 
-  <div class="buttons">
-    <button class="immediate" onclick="setMode('immediate')">Paiement</button>
-    <button class="preauth" onclick="setMode('preauth')">Caution</button>
-  </div>
+ <div class="row">
+  <button class="btn-payment" onclick="setMode('immediate')">Paiement</button>
+  <button class="btn-preauth" onclick="setMode('preauth')">Caution</button>
+</div>
 
-  <button id="submit" onclick="sendPayment()">Envoyer au terminal</button>
-  <button onclick="cancelPayment()" style="background:#ccc;">
-  Annuler
-</button>
+<div class="row">
+  <button class="btn-send" onclick="sendPayment()">Envoyer</button>
+  <button class="btn-cancel" onclick="cancelPayment()">Annuler</button>
+</div>
 
-  <div id="status"></div>
+<div id="status"></div>
 </div>
 
 <script>
