@@ -143,6 +143,12 @@ async function sendPayment() {
 
   const amountInput = document.getElementById('amount').value;
   const email = document.getElementById('customer-email').value.trim();
+ const name = document.getElementById('customer-name').value.trim();
+
+if (!name) {
+  alert('Nom client requis');
+  return;
+}
   const status = document.getElementById('status');
 
   if (!amountInput) {
@@ -166,10 +172,11 @@ async function sendPayment() {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        amount,
-        currency: 'eur',
-        mode: selectedMode,
-        email
+  amount,
+  currency: 'eur',
+  mode: selectedMode,
+  email,
+  name
       })
     });
 
