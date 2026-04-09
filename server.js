@@ -125,7 +125,7 @@ app.use(express.static('public'));
 
 app.post('/create-payment-intent', async (req, res) => {
   try {
-    const { amount, currency, mode, email } = req.body;
+    const { amount, currency, mode, email, name } = req.body;
 
     if (!amount || !currency || !mode) {
       return res.status(400).json({
@@ -133,6 +133,11 @@ app.post('/create-payment-intent', async (req, res) => {
         error: 'amount, currency et mode requis'
       });
     }
+
+    const customer = await stripe.customers.create({
+      email,
+      name
+    });
 
     const capture_method = mode === 'preauth' ? 'manual' : 'automatic';
 
