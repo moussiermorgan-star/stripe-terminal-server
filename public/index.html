@@ -152,10 +152,15 @@ if (!email || !/^\S+@\S+\.\S+$/.test(email)) {
     status.innerText = "Création du paiement...";
 
     const piRes = await fetch('/create-payment-intent', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ amount, currency: 'eur', mode: selectedMode })
-    });
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({ 
+    amount, 
+    currency: 'eur', 
+    mode: selectedMode,
+    email
+  })
+});
 
     const piData = await piRes.json();
 
