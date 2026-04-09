@@ -123,6 +123,45 @@ app.post('/webhook', express.raw({ type: 'application/json' }), (req, res) => {
 app.use(express.json());
 app.use(express.static('public'));
 
+app.post('/find-customer-by-email', async (req, res) => {
+  try {
+    const { email } = req.body;
+
+    if (!email) {
+      return res.status(400).json({
+        ok: false,
+        error: 'email requis'
+      });
+    }
+
+    const existingCustomers = await stripe.customers.list({
+      email,
+      limit: 1
+    });
+
+    if (existingCustomers.data.length === 0) {
+      return res.json({
+        ok: true,
+        found: false,
+        name: ''
+      });
+    }
+
+    const customer = existingCustomers.data[0];
+
+    res.json({
+      ok: true,
+      found: true,
+      name: customer.name || ''
+    });
+
+  } catch (error) {
+    res.status(500).json({
+      ok: false,
+      error: error.message
+    });
+  }
+});
 app.post('/create-payment-intent', async (req, res) => {
   try {
     const { amount, currency, mode, email, name } = req.body;
