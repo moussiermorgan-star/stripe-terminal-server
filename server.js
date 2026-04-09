@@ -125,7 +125,7 @@ app.use(express.static('public'));
 
 app.post('/create-payment-intent', async (req, res) => {
   try {
-    const { amount, currency, mode } = req.body;
+    const { amount, currency, mode, email } = req.body;
 
     if (!amount || !currency || !mode) {
       return res.status(400).json({
@@ -143,7 +143,8 @@ app.post('/create-payment-intent', async (req, res) => {
       capture_method,
       metadata: {
         terminal_mode: mode
-      }
+      },
+      receipt_email: email
     });
 
     res.json({
