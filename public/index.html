@@ -133,6 +133,11 @@ function setMode(mode) {
 }
 
 async function sendPayment() {
+  const email = document.getElementById('customer-email').value.trim();
+if (!email || !/^\S+@\S+\.\S+$/.test(email)) {
+  alert('Email client invalide');
+  return;
+}
   const amountInput = document.getElementById('amount').value;
   const status = document.getElementById('status');
 
