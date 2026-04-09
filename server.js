@@ -134,10 +134,27 @@ app.post('/create-payment-intent', async (req, res) => {
       });
     }
 
-    const customer = await stripe.customers.create({
-      email,
+    const existingCustomers = await stripe.customers.list({
+  email,
+  limit: 1
+});
+
+let customer;
+
+if (existingCustomers.data.length > 0) {
+  customer = existingCustomers.data[0];
+
+  if (name && customer.name !== name) {
+    customer = await stripe.customers.update(customer.id, {
       name
     });
+  }
+} else {
+  customer = await stripe.customers.create({
+    email,
+    name
+  });
+}
 
     const capture_method = mode === 'preauth' ? 'manual' : 'automatic';
 
