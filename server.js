@@ -142,15 +142,16 @@ app.post('/create-payment-intent', async (req, res) => {
     const capture_method = mode === 'preauth' ? 'manual' : 'automatic';
 
     const paymentIntent = await stripe.paymentIntents.create({
-      amount,
-      currency,
-      payment_method_types: ['card_present'],
-      capture_method,
-      metadata: {
-        terminal_mode: mode
-      },
-      receipt_email: email
-    });
+  amount,
+  currency,
+  payment_method_types: ['card_present'],
+  capture_method,
+  customer: customer.id,
+  metadata: {
+    terminal_mode: mode
+  },
+  receipt_email: email
+});
 
     res.json({
       ok: true,
